@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <!--
+        MyBatis核心配置文件中的标签必须要按照指定的顺序配置
+        properties?,settings?,typeAliases?,typeHandlers?,objectFactory?,
+        objectWrapperFactory?,reflectorFactory?,plugins?,environments?,databaseIdProvider?,mappers?
+     -->
+    <settings>
+        <!-- 将下划线 映射为 驼峰 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!-- 启动延迟加载，开启时，所有关联对象都会延迟加载 -->
+        <setting name="lazyLoadingEnabled" value="false"/>
+        <!-- aggressiveLazyLoading：按需加载，当开启时，任何方法的调用都会加载该对象的所有属性。否则，每个属性会按需加载，默认为false -->
+        <setting name="aggressiveLazyLoading" value="false"/>
+    </settings>
+
+    <plugins>
+        <plugin interceptor="com.github.pagehelper.PageInterceptor">
+            <!-- 分页参数合理化-->
+            <property name="reasonable" value="true"/>
+        </plugin>
+    </plugins>
+</configuration>

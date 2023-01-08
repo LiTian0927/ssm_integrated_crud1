@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>员工列表</title>
+    <!--
+        web路径：
+       不以'/'开始的相对路径，找资源，以当前资源的路径为基准，经常会出问题
+       以'/'开始的相对路径，以服务器的路径为标准(http://localhost:3306);需要加上项目名
+                    http:localhost:3306/crud
+    -->
+    <!-- 引入jQuery-->
+<!--    <script type="text/javascript" th:src="@{/static/js/jquery-1.12.4.min.js}"></script>-->
+    <!-- Bootstrap -->
+    <link rel="stylesheet" th:href="@{/static/bootstrap-5.2.3-dist/css/bootstrap.css}">
+    <script type="text/javascript" th:src="@{/static/bootstrap-5.2.3-dist/js/bootstrap.js}"></script>
+    <script type="text/javascript" th:src="@{/static/js/axios.js}"></script>
+    <script type="text/javascript" th:src="@{/static/js/vue.js}"></script>
+    <script type="text/javascript" th:src="@{/static/js/index.js}"></script>
+    <base>
+</head>
+<body>
+<!-- 搭建页面-->
+<div id="app" class="container">
+    <!--标题-->
+    <div class="row">
+        <div class="col-md-12">
+            <h1>SSM-CRUD</h1>
+        </div>
+    </div>
+    <!-- 按钮-->
+    <div class="row">
+        <div class="col-md-4 offset-md-9">
+            <!------------------------------------添加员工的模态框--------------------------------------->
+            <!-- 新增按钮 -->
+            <button id="emp_add_model_btn" type="button" data-bs-target="#emp_add_model" data-bs-toggle="modal" class="btn btn-primary btn-md" @click="getDepts"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus" viewBox="0 0 16 16">
+                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+            </svg>新增</button>
+            <!-- Modal -->
+            <div class="modal fade modal-lg" id="emp_add_model" data-bs-backdrop="false" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="exampleModalLabel">添加员工</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form>
+                                <div class="mb-3">
+                                    <label class="form-label">empName</label>
+                                    <input type="text" :class="{'form-control':true, 'is-valid':checkEmpName==1, 'is-invalid':checkEmpName == 0}" name="empName" placeholder="empName" @blur="validateEmpName">
+                                    <div class="invalid-feedback">{{validationFailMsg_empName}}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="text" :class="{'form-control':true, 'is-valid':checkEmail==1, 'is-invalid':checkEmail == 0}" name="email" placeholder="empName" @blur="validateEmail">
+                                    <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+                                    <div class="invalid-feedback">{{validationFailMsg_email}}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">gender</label>
+                                    <div class="form-check form-check-inline">
+                                        <input :class="{ 'form-check-input':true}" type="radio" name="gender" id="genderRadioMale" value="男" checked @change="getGender">
+                                        <label class="form-check-label" for="genderRadioMale">男</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input :class="{ 'form-check-input':true}" type="radio" name="gender" id="genderRadioFemale" value="女" @change="getGender">
+                                        <label class="form-check-label" for="genderRadioFemale">女</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">deptName</label>
+                                    <select :class="{'form-select':true, 'w-50':true}" name="deptId" @change="getDeptId">
+                                        <option v-for="dept in depts" :value="dept.deptId">{{dept.deptName}}</option>
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                            <button type="button" class="btn btn-primary" @click="saveEmp">保存</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--批量删除按钮-->
+            <button class="btn btn-danger btn-md" @click="onDeleteBatchBtnClicked" :disabled="checkedEmpIds.length===0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill" viewBox="0 0 16 16">
+                <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5Zm-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5ZM4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06Zm6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528ZM8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5Z"/>
+            </svg>删除</button>
+            <!-- Modal -->
+            <div class="modal fade" id="emp_delete_batch_model" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5">删除员工</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            确认删除{{checkedEmpNames}}?
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="button" class="btn btn-primary" @click="deleteEmpInBatch">删除</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 显示表格数据-->
+    <div class="row">
+        <div class="col-md-12">
+            <table id="emps_table" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th><input class="form-check-input" type="checkbox" ref="checkAll" @change="checkAll"></th>
+                        <th>#</th>
+                        <th>empName</th>
+                        <th>gender</th>
+                        <th>email</th>
+                        <th>deptName</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <tr v-for="emp in pageInformation.list">
+                    <td><input class="form-check-input" type="checkbox" name="checkEmp" :emp-id="emp.empId" :emp-name="emp.empName" @change="checkOneEmp"></td>
+                    <td>{{emp.empId}}</td>
+                    <td>{{emp.empName}}</td>
+                    <td>{{emp.gender}}</td>
+                    <td>{{emp.email}}</td>
+                    <td>{{emp.department.deptName}}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" data-bs-target="#emp_edit_model" data-bs-toggle="modal" @click="editEmp(emp.empId)"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
+                            <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+                        </svg>编辑</button>
+                        <div class="modal fade modal-lg" id="emp_edit_model" data-bs-backdrop="false" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h1 class="modal-title fs-5">编辑员工</h1>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form>
+                                            <input type="hidden" name="empId" :value="currentEmpId">
+                                            <div class="mb-3">
+                                                <label class="form-label">empName</label>
+                                                <input readonly type="text" class="form-control-plaintext" name="empName" :value="formData.empName">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Email</label>
+                                                <input type="text" :class="{'form-control':true, 'is-valid':checkEmail==1, 'is-invalid':checkEmail == 0}" name="email" placeholder="email" @blur="validateEmail" :value="formData.email">
+                                                <div class="invalid-feedback">{{validationFailMsg_email}}</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">gender</label>
+                                                <div class="form-check form-check-inline">
+                                                    <input :class="{ 'form-check-input':true}" type="radio" name="gender" value="男" :checked="formData.gender=='男'" >
+                                                    <label class="form-check-label">男</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input :class="{ 'form-check-input':true}" type="radio" name="gender" value="女" :checked="formData.gender=='女'">
+                                                    <label class="form-check-label">女</label>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">deptName</label>
+                                                <select :class="{'form-select':true, 'w-50':true}" name="deptId">
+                                                    <option v-for="dept in depts" :value="dept.deptId" :selected="formData.deptId == dept.deptId">{{dept.deptName}}</option>
+                                                </select>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                                        <button type="button" class="btn btn-primary" @click="updateEmp">更新</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" @click="onDeleteBtnClicked(emp.empId,emp.empName)"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+                            <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/>
+                        </svg>删除</button>
+                        <!-- Modal -->
+                        <div class="modal fade" id="emp_delete_model" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h1 class="modal-title fs-5">删除员工</h1>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        确认删除{{currentEmpName}}?
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                        <button type="button" class="btn btn-primary" @click="deleteEmp(currentEmpId)">删除</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+    <!--显示分页信息-->
+    <div class="row">
+        <!-- 分页文字信息-->
+        <div class="col-md-4 align-self-start" id="page_info_area">
+            <span>当前页:{{pageInformation.pageNum}}, </span>
+            <span>总记录数:{{pageInformation.total}}, </span>
+            <span>总:{{pageInformation.pages}}页</span>
+        </div>
+        <!--分页条信息-->
+        <div class="col-md-6 align-self-center" id="page_nav_area">
+            <nav aria-label="Page navigation">
+                <ul class="pagination">
+                    <li :class="{'page-item':true, 'disabled':!pageInformation.hasPreviousPage}">
+                        <a class="page-link" v-if="pageInformation.hasPreviousPage" @click="onPageChanged(1)" href="#">首页</a>
+                        <a class="page-link" v-else="!pageInformation.hasPreviousPage" href="#">首页</a>
+                    </li>
+                    <li :class="{'page-item':true, 'disabled': !pageInformation.hasPreviousPage}">
+                        <a class="page-link" v-if="pageInformation.hasPreviousPage" @click="onPageChanged(pageInformation.prePage)" href="#" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                        <a class="page-link" v-else="!pageInformation.hasPreviousPage" href="#" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    <li v-for="navigatepageNum in pageInformation.navigatepageNums" :class="{'page-item':true, active: pageInformation.pageNum===navigatepageNum}">
+                        <a class="page-link" @click="onPageChanged(navigatepageNum)" href="#" v-text="navigatepageNum">1></a>
+                    </li>
+                    <li :class="{'page-item':true,'disabled':!pageInformation.hasNextPage}">
+                        <a class="page-link" v-if="pageInformation.nextPage" @click="onPageChanged(pageInformation.nextPage)"  href="#" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                        <a class="page-link" v-else="!pageInformation.nextPage" href="#" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li :class="{'page-item':true, 'disabled':!pageInformation.hasNextPage}">
+                        <a class="page-link" v-if="pageInformation.nextPage" @click="onPageChanged(pageInformation.pages)" href="#">末页</a>
+                        <a class="page-link" v-else="!pageInformation.nextPage" href="#">末页</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+    </div>
+    <div class="row">
+        <!-- 删除成功弹出的模态框 -->
+        <div class="modal fade" id="deleteEmpInBatchResultModel" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5">删除成功</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        成功删除了{{checkedEmpIds.length}}条员工信息
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
